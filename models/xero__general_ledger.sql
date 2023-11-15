@@ -33,6 +33,13 @@ with journals as (
     from {{ var('credit_note') }}
 {% endif %}
 
+{% if var('xero__using_tracking_categories', True) %}
+), tracking_categories as (
+
+    select *
+    from xero.journal_line_has_tracking_category
+{% endif %}
+
 ), contacts as (
 
     select *
@@ -67,7 +74,10 @@ with journals as (
         case when journals.source_type in ('TRANSFER') then journals.source_id end as bank_transfer_id,
         case when journals.source_type in ('MANJOURNAL') then journals.source_id end as manual_journal_id,
         case when journals.source_type in ('APPREPAYMENT', 'APOVERPAYMENT', 'ACCPAYPAYMENT', 'ACCRECPAYMENT', 'ARCREDITPAYMENT', 'APCREDITPAYMENT') then journals.source_id end as payment_id,
-        case when journals.source_type in ('ACCPAYCREDIT','ACCRECCREDIT') then journals.source_id end as credit_note_id
+        case when journals.source_type in ('ACCPAYCREDIT','ACCRECCREDIT') then journals.source_id end as credit_note_id,
+		
+		MAX(CASE WHEN tracking_categories.tracking_category_id = '76e4f27c-6a37-48dc-8772-9d96468b93a9' THEN tracking_categories.option END) AS project,
+		MAX(CASE WHEN tracking_categories.tracking_category_id = '8ae4d539-12e6-4df9-9a24-a4f9dbe38f14' THEN tracking_categories.option END) AS department,
 
     from journals
     left join journal_lines
@@ -76,6 +86,9 @@ with journals as (
     left join accounts
         on (accounts.account_id = journal_lines.account_id
         and accounts.source_relation = journal_lines.source_relation)
+	left join tracking_categories
+		on (tracking_categories.journal_line_id = journal_lines.journal_line_id)
+	{{ dbt_utils.group_by(26) }}
 
 ), first_contact as (
 

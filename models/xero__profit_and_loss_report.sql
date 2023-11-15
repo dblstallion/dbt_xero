@@ -19,12 +19,14 @@ with calendar as (
         ledger.account_type, 
         ledger.account_class, 
         ledger.source_relation, 
+		ledger.project,
+		ledger.department,
         coalesce(sum(ledger.net_amount * -1),0) as net_amount
     from calendar
     left join ledger
         on calendar.date_month = cast({{ dbt.date_trunc('month', 'ledger.journal_date') }} as date)
     where ledger.account_class in ('REVENUE','EXPENSE')
-    {{ dbt_utils.group_by(8) }}
+    {{ dbt_utils.group_by(10) }}
 
 )
 
